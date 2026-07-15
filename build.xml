@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project name="PluginMetricas" default="dist">
+
+    <property file="build.properties"/>
+
+    <property name="src.dir" value="src"/>
+    <property name="build.dir" value="build"/>
+    <property name="classes.dir" value="${build.dir}/classes"/>
+    <property name="dist.dir" value="dist"/>
+    <property name="plugin.dir" value="${build.dir}/plugin"/>
+
+    <path id="iiq.classpath">
+        <fileset dir="C:\Users\rporcel\Downloads\identityiq-8.5\identityiq\WEB-INF\lib">
+            <include name="*.jar"/>
+        </fileset>
+    </path>
+
+    <!-- Limpieza -->
+    <target name="clean">
+        <delete dir="${build.dir}"/>
+        <delete dir="${dist.dir}"/>
+    </target>
+
+    <!-- Compilación -->
+    <target name="compile">
+        <mkdir dir="${classes.dir}"/>
+
+        <javac
+                srcdir="${src.dir}"
+                destdir="${classes.dir}"
+                classpathref="iiq.classpath"
+                source="17"
+                target="17"
+                includeantruntime="false"/>
+    </target>
+
+    <!-- Crear el JAR -->
+    <target name="jar" depends="compile">
+        <mkdir dir="${dist.dir}"/>
+
+        <jar
+                destfile="${dist.dir}/${pluginName}.jar"
+                basedir="${classes.dir}"/>
+    </target>
+
+    <!-- Target para preparar el ZIP -->
+    <target name="package" depends="jar">
+        <mkdir dir="${plugin.dir}"/>
+        <mkdir dir="${plugin.dir}/lib"/>
+        <mkdir dir="${plugin.dir}/ui"/>
+
+        <copy file="manifest.xml" todir="${plugin.dir}"/>
+        <copy file="${dist.dir}/${pluginName}.jar" todir="${plugin.dir}/lib"/>
+
+        <!-- Aquí es donde se transfiere el frontend -->
+        <copy todir="${plugin.dir}/ui">
+            <fileset dir="ui" includes="**/*"/>
+        </copy>
+    </target>
+
+    <!-- Crear el ZIP del plugin -->
+    <target name="dist" depends="package">
+        <zip
+                destfile="${dist.dir}/${pluginName}.zip"
+                basedir="${plugin.dir}"/>
+    </target>
+
+</project>

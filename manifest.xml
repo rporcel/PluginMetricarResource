@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE Plugin PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<Plugin name="PluginMetricas" displayName="Plugin Metricas" version="1.1" minSystemVersion="8.5">
+    <Attributes>
+        <Map>
+            <entry key="restResources">
+                <value>
+                    <List>
+                        <String>com.rporcel.metricas.MetricasResource</String>
+                    </List>
+                </value>
+            </entry>
+
+            <entry key="fullPage">
+                <value>
+                    <FullPage title="Monitor de Infraestructura" />
+                </value>
+            </entry>
+
+            <entry key="snippets">
+                <value>
+                    <List>
+                        <Snippet regexPattern=".*">
+                            <Scripts>
+                                <String>ui/js/snippets/header.js</String>
+                            </Scripts>
+                        </Snippet>
+                    </List>
+                </value>
+            </entry>
+        </Map>
+    </Attributes>
+</Plugin>

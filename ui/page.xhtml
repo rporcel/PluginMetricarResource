@@ -1,0 +1,168 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:ui="http://java.sun.com/jsf/facelets">
+
+<ui:composition>
+
+    <style>
+        /* ESTILOS: Todo encapsulado para no romper el CSS de Bootstrap de SailPoint */
+        .monitor-container { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 30px; background-color: #1e1e2f; color: #c8c8d0; border-radius: 8px; margin: 20px; }
+        .monitor-container h1 { color: #ffffff; text-align: center; margin-bottom: 40px; }
+        .dashboard-grid { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; }
+        .card-iiq { background: #2a2a3c; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); width: 240px; border-top: 4px solid #00d2ff; box-sizing: border-box; }
+        .card-iiq h3 { color: #8c8c9a; font-size: 14px; text-transform: uppercase; margin-top: 0; letter-spacing: 1px; }
+        .dato-iiq { font-size: 32px; font-weight: bold; color: #ffffff; margin: 10px 0 5px 0; }
+        .subdato-iiq { font-size: 12px; color: #8c8c9a; }
+
+        .border-memory { border-top-color: #ff5722; }
+        .border-cpu { border-top-color: #4caf50; }
+        .border-system { border-top-color: #9c27b0; }
+        .text-accent { color: #00d2ff; }
+        .text-memory { color: #ff5722; }
+
+        /* Estilos genéricos para botones */
+        .btn-plugin { padding: 10px 20px; font-size: 16px; cursor: pointer; color: white; border: none; border-radius: 5px; font-weight: bold; }
+    </style>
+
+    <div class="monitor-container">
+        <h1>🖥️ Monitor de Infraestructura (IdentityIQ)</h1>
+
+        <div style="text-align: center; margin-bottom: 30px; display: flex; justify-content: center; gap: 15px;">
+            <button onclick="toggleRefresco(this)" class="btn-plugin" style="background-color: #28a745;">
+                ▶ Iniciar Refresco Automático
+            </button>
+            <button onclick="enviarReporte()" class="btn-plugin" style="background-color: #007bff;">
+                ✉️ Enviar métricas por Email
+            </button>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="card-iiq border-memory">
+                <h3>Memoria Usada (JVM)</h3>
+                <p class="dato-iiq text-memory" id="memoria_usada">...</p>
+                <p class="subdato-iiq">Libre: <span id="memoria_libre">...</span> MB | Máx: <span id="memoria_maxima">...</span> MB</p>
+            </div>
+            <div class="card-iiq border-cpu">
+                <h3>Núcleos &amp; Carga</h3>
+                <p class="dato-iiq" id="procesadores">...</p>
+                <p class="subdato-iiq">Carga media CPU: <span id="carga_sistema">...</span></p>
+            </div>
+            <div class="card-iiq border-cpu">
+                <h3>Hilos (Threads)</h3>
+                <p class="dato-iiq" id="hilos_activos">...</p>
+                <p class="subdato-iiq">Pico máximo: <span id="hilos_pico">...</span></p>
+            </div>
+            <div class="card-iiq">
+                <h3>Nodos en Clúster</h3>
+                <p class="dato-iiq text-accent" id="nodos_iiq">...</p>
+                <p class="subdato-iiq">Servidores SailPoint activos</p>
+            </div>
+            <div class="card-iiq border-system" style="width: 500px;">
+                <h3>Entorno Host</h3>
+                <p class="dato-iiq" id="sistema_operativo" style="font-size: 24px;">...</p>
+                <p class="subdato-iiq">Arq: <span id="arquitectura_so">...</span> | Java: <span id="version_java">...</span></p>
+            </div>
+            <div class="card-iiq border-system">
+                <h3>Tiempo de Actividad</h3>
+                <p class="dato-iiq" id="tiempo_actividad" style="font-size: 24px;">...</p>
+                <p class="subdato-iiq">Uptime del contenedor</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // VARIABLE GLOBAL: Mantiene vivo el temporizador de refresco
+        let intervaloRefresco = null;
+
+        /**
+         * FUNCIÓN: refrescarDatos()
+         * Llama al endpoint @GET (stats) de Java y actualiza el HTML.
+         */
+        function refrescarDatos() {
+            // Se usa "same-origin" para que SailPoint sepa que estamos logueados
+            fetch("/identityiq/plugin/rest/metricas/stats", { method: 'GET', credentials: 'same-origin' })
+            .then(respuesta => respuesta.json())
+            .then(datos => {
+                // Inyectamos el JSON de respuesta en el DOM basándonos en sus IDs
+                document.getElementById("memoria_usada").innerText = datos.memoria_usada_mb + " MB";
+                document.getElementById("memoria_libre").innerText = datos.memoria_libre_mb;
+                document.getElementById("memoria_maxima").innerText = datos.memoria_maxima_mb;
+                document.getElementById("procesadores").innerText = datos.nucleos_procesador;
+                document.getElementById("carga_sistema").innerText = datos.carga_sistema;
+                document.getElementById("hilos_activos").innerText = datos.hilos_activos;
+                document.getElementById("hilos_pico").innerText = datos.hilos_pico;
+                document.getElementById("nodos_iiq").innerText = datos.nodos_iiq;
+                document.getElementById("sistema_operativo").innerText = datos.sistema_operativo;
+                document.getElementById("arquitectura_so").innerText = datos.arquitectura_so;
+                document.getElementById("version_java").innerText = datos.version_java;
+                document.getElementById("tiempo_actividad").innerText = datos.tiempo_actividad;
+            })
+            .catch(error => console.error("Error GET API:", error));
+        }
+
+        /**
+         * FUNCIÓN: toggleRefresco(boton)
+         * Enciende o apaga el temporizador automático (setInterval)
+         */
+        function toggleRefresco(boton) {
+            if (intervaloRefresco) {
+                // APAGAR
+                clearInterval(intervaloRefresco);
+                intervaloRefresco = null;
+                boton.innerText = "▶ Iniciar Refresco Automático";
+                boton.style.backgroundColor = "#28a745"; // Verde
+            } else {
+                // ENCENDER: Llamada inmediata y luego cada 500ms
+                refrescarDatos();
+                intervaloRefresco = setInterval(refrescarDatos, 500);
+                boton.innerText = "⏹ Detener Refresco";
+                boton.style.backgroundColor = "#dc3545"; // Rojo
+            }
+        }
+
+        /**
+         * FUNCIÓN: enviarReporte()
+         * Lee la pantalla, pide un correo y envía un POST a la clase Java
+         * para que esta ejecute la Regla de IdentityIQ.
+         */
+        function enviarReporte() {
+            // 1. Extraemos la información que el usuario está viendo en pantalla
+            let reporteText = "=== ESTADO ACTUAL DEL SERVIDOR ===\n\n";
+            reporteText += "Memoria Usada: " + document.getElementById("memoria_usada").innerText + "\n";
+            reporteText += "Carga Sistema: " + document.getElementById("carga_sistema").innerText + "\n";
+            reporteText += "Nodos Activos: " + document.getElementById("nodos_iiq").innerText + "\n";
+
+            // 2. Pedimos destino al usuario
+            let emailDestino = prompt("Introduce el correo del administrador:", "admin@empresa.com");
+
+            // 3. Ejecutamos el envío sólo si introdujo un correo
+            if (emailDestino != null &amp;&amp; emailDestino !== "") {
+
+                // Hacemos el POST apuntando a la ruta "enviar" de MetricasResource.java
+                fetch("/identityiq/plugin/rest/metricas/enviar", {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contenido: reporteText,
+                        email: emailDestino
+                    })
+                })
+                .then(respuesta => respuesta.json())
+                .then(datos => {
+                    // El JSON que recibimos aquí viene del método dispararRegla() de Java
+                    if(datos.status === "ok") {
+                        alert("✅ ÉXITO: " + datos.mensaje);
+                    } else {
+                        alert("❌ ERROR JAVA: " + datos.mensaje);
+                    }
+                })
+                .catch(error => alert("❌ Error de red / JS: " + error));
+            }
+        }
+
+        // Hacemos una carga inicial silenciosa al abrir el plugin
+        refrescarDatos();
+    </script>
+</ui:composition>
+</html>

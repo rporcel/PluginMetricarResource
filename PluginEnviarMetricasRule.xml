@@ -1,0 +1,64 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE Rule PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+
+<Rule language="beanshell" name="PluginEnviarMetricasRule">
+    <Source>
+        <![CDATA[
+    // ====================================================================================
+    // 1. IMPORTACIONES
+    // Importamos las clases nativas de SailPoint necesarias para construir el correo.
+    // ====================================================================================
+
+    import sailpoint.object.EmailTemplate;
+    import sailpoint.object.EmailOptions;
+
+    // ====================================================================================
+    // 2. RECEPCIÓN DE DATOS (LA MAGIA DE SAILPOINT)
+    // En nuestro Java (MetricasResource.java) creamos un Map llamado 'ruleParams'
+    // y lo llenamos así:
+    //    ruleParams.put("email", destinatario);
+    //    ruleParams.put("contenido", metricasText);
+    //
+    // Al ejecutar context.runRule(regla, ruleParams), SailPoint inyecta automáticamente
+    // esas claves como variables directas en este script. No hay que declararlas,
+    // simplemente usamos 'email' y 'contenido'.
+    // ====================================================================================
+
+    // Creamos un objeto de plantilla de correo "al vuelo" en la memoria RAM
+
+    EmailTemplate template = new EmailTemplate();
+
+    // Le decimos a quién va dirigido (usando la variable inyectada desde Java)
+
+    template.setTo(email);
+
+    // Establecemos el Asunto del correo
+
+    template.setSubject("Monitor de Infraestructura - IdentityIQ");
+
+    // Establecemos el cuerpo del mensaje (el reporte que capturamos en JavaScript)
+
+    template.setBody(contenido);
+
+    // ====================================================================================
+    // 3. ENVÍO DEL CORREO
+    // ====================================================================================
+    // EmailOptions nos permite añadir adjuntos o variables extra, pero aquí lo mandamos vacío
+
+    EmailOptions options = new EmailOptions();
+
+    // Usamos el método seguro 'sendEmailNotification' que viene integrado en el 'context'
+    // global de SailPoint. Esto usa la configuración SMTP que tengas en Global Settings.
+
+    context.sendEmailNotification(template, options);
+
+    // ====================================================================================
+    // 4. RETORNO DE ESTADO
+    // Todo lo que devuelva esta regla (return) viajará de vuelta a la variable 'ruleResult'
+    // en tu clase Java, y de ahí se mandará como JSON de éxito al navegador web.
+    // ====================================================================================
+
+    return "Correo enviado correctamente al administrador: " + email;
+    ]]>
+    </Source>
+</Rule>
